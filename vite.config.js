@@ -16,4 +16,14 @@ export default defineConfig({
       "Cross-Origin-Embedder-Policy": "require-corp",
     },
   },
+  build: {
+    rollupOptions: {
+      external: [
+        /\.node$/,
+        "fs",
+        "path",
+        "child_process"
+      ]
+    }
+  }
 });
