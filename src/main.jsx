@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { CreateWebGPUEngine } from "@mlc-ai/web-llm";
+import { CreateWebWorkerEngine } from "@mlc-ai/web-llm";
+import { ragManager } from "./LocalRAGManager";
 
-// 1. Fully White-Labeled Application Configuration Mapping to your R2 Domain 
 const customAppConfig = {
     model_list: [
         {
             model_url: "https://pub-f9f773c792994f58bd674d3f8cb17d9d.r2.dev/SNOWflake_v1.0/",
-            local_id: "SNOWflake", // Use unique identifiers
+            local_id: "SNOWflake", 
             model_lib: "https://pub-f9f773c792994f58bd674d3f8cb17d9d.r2.dev/core/SNOWflake_v1.0.wasm/"
         },
         {
@@ -14,7 +14,9 @@ const customAppConfig = {
             local_id: "FISHscale",
             model_lib: "https://pub-f9f773c792994f58bd674d3f8cb17d9d.r2.dev/core/FISHscale_v1.0.wasm"
         }
-    ]
+    ],
+    // FORCES the engine to write raw binary streams straight to disk, bypassing 1GB limits
+    cacheBackend: "opfs" 
 };
 
 // 2. White-Labeled Model Personality/System Instructions Mapping
@@ -289,7 +291,7 @@ At the end of every substantive response, you include a brief section titled Gap
 This section is brief. It is not a second essay. It is a smart, concise advisory note.`
 };
 
-// 3. Status Filtering Utility to intercept raw engine names in loading screens
+
 function sanitizeLoadingProgress(rawText, activeModelId) {
     if (rawText.includes("Fetch")) {
         const progressMatch = rawText.match(/\d+%/);
@@ -305,84 +307,104 @@ function sanitizeLoadingProgress(rawText, activeModelId) {
 export default function App() {
     const [engine, setEngine] = useState(null);
     const [currentModel, setCurrentModel] = useState("SNOWflake");
-    const [status, setStatus] = useState("Booting Client Engines...");
+    const [status, setStatus] = useState("Awaiting Sovereignty Agreement...");
     const [input, setInput] = useState("");
     const [messages, setMessages] = useState([]);
+    
+    // Legal & Security States
+    const [hasAgreed, setHasAgreed] = useState(false);
+    const [isLoggingAgreement, setIsLoggingAgreement] = useState(false);
 
-    // Mock representation of your local database/RAG manager layer
-    const ragManager = {
-        searchContext: async (query, limit) => "Local vector space context placeholder.",
-        ingestDocument: async (text, meta) => console.log("Persisted text to local store.")
-    };
-
-    // 4. Initial Cold Start Engine Boot Sequence
+    // Verify local storage signature on cold start
     useEffect(() => {
-        async function initDefaultModel() {
-            try {
-                setStatus("Waking Core Architecture...");
-
-                // Initializes WebGPU context and downloads the initial default model
-                const webGPUEngine = await CreateWebGPUEngine("SNOWflake", {
-                    onUpdate: (info) => {
-                        const cleanProgress = sanitizeLoadingProgress(info.text, "SNOWflake");
-                        setStatus(cleanProgress);
-                    }
-                }, customAppConfig);
-
-                setEngine(webGPUEngine);
-                setStatus("System Fully Autonomous");
-            } catch (err) {
-                console.error("WebGPU Boot Failure:", err);
-                setStatus(`Initialization failed: ${err.message}`);
-            }
+        const agreementSignature = localStorage.getItem("vault_agreement_sig");
+        if (agreementSignature) {
+            setHasAgreed(true);
+            bootBackgroundEngine();
         }
-        initDefaultModel();
     }, []);
 
-    // 5. Secure Model Hot-Swap Mechanism
+    // Handle Anonymous Click-Wrap Execution
+    const handleAcceptTerms = async () => {
+        setIsLoggingAgreement(true);
+        try {
+            // Generate a zero-knowledge cryptographically secure token unique to the device
+            const anonUUID = crypto.randomUUID();
+            const timestamp = new Date().toISOString();
+
+            // Mock backend logging tracking ping (No identity leakage)
+            await fetch("https://your-r2-url.com/api/agreements-log", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ token: anonUUID, ts: timestamp, scope: "unrestricted_inference" })
+            }).catch(() => console.log("Local offline verification fallback triggered."));
+
+            localStorage.setItem("vault_agreement_sig", JSON.stringify({ token: anonUUID, date: timestamp }));
+            setHasAgreed(true);
+            bootBackgroundEngine();
+        } catch (err) {
+            setStatus(`Verification protocol failed: ${err.message}`);
+        } finally {
+            setIsLoggingAgreement(false);
+        }
+    };
+
+    // Spin up Web Worker and initialize OPFS file pipeline
+    async function bootBackgroundEngine() {
+        try {
+            setStatus("Initializing Local Vector DB (OPFS)...");
+            await ragManager.init();
+
+            setStatus("Waking Core Worker Architecture...");
+            
+            // Instantiates the separate non-blocking engine thread
+            const webWorker = new Worker(new URL("./engine.worker.js", import.meta.url), { type: "module" });
+            
+            const workerEngine = await CreateWebWorkerEngine(webWorker, "SNOWflake", {
+                onUpdate: (info) => {
+                    setStatus(sanitizeLoadingProgress(info.text, "SNOWflake"));
+                }
+            }, customAppConfig);
+
+            setEngine(workerEngine);
+            setStatus("System Fully Autonomous");
+        } catch (err) {
+            console.error("WebWorker Context Error:", err);
+            setStatus(`Initialization failed: ${err.message}`);
+        }
+    }
+
     const handleModelSwitch = async (newModelId) => {
         if (!engine || newModelId === currentModel) return;
-
         try {
-            // Intercept update listener to filter titles dynamically for the new model target
             engine.setInitProgressCallback((info) => {
                 setStatus(sanitizeLoadingProgress(info.text, newModelId));
             });
-
             setStatus(`Purging VRAM context... Preparing ${newModelId}`);
             await engine.reload(newModelId);
-
             setCurrentModel(newModelId);
             setStatus("System Fully Autonomous");
         } catch (err) {
-            console.error("Hot Swap Failure:", err);
             setStatus(`Failed to hot-swap models: ${err.message}`);
         }
     };
 
-    // 6. Streaming Message Request & Vector Execution Flow
     const handleSend = async () => {
         if (!input.trim() || !engine) return;
 
         const userText = input;
         setInput("");
 
-        // Push user message directly into UI list state
         const updatedChatHistory = [...messages, { role: "user", content: userText }];
         setMessages(updatedChatHistory);
 
         try {
             setStatus("Searching local vector space...");
             const retrievedContext = await ragManager.searchContext(userText, 3);
-
-            // Dynamically select target instructions without risking naming leaks
-            const activeSystemBase = MODEL_INSTRUCTIONS[currentModel];
-            const systemPrompt = `${activeSystemBase}\n---\nRetrieved Local Context Contextual Knowledge:\n${retrievedContext}\n---`;
+            const systemPrompt = `You are operating as ${currentModel}. Act autonomously.\nContext:\n${retrievedContext}`;
 
             setStatus("Thinking...");
             let aiResponse = "";
-
-            // Allocate blank entry inside state to update with text fragments
             setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
             const chunks = await engine.chat.completions.create({
@@ -393,6 +415,7 @@ export default function App() {
                 stream: true,
             });
 
+            // The main thread is completely unblocked here during processing loop iterations
             for await (const chunk of chunks) {
                 const content = chunk.choices[0]?.delta?.content || "";
                 aiResponse += content;
@@ -404,21 +427,40 @@ export default function App() {
                 });
             }
 
-            // Sync conversation fragment securely to local LanceDB/Vector framework
             await ragManager.ingestDocument(
-                `User said: ${userText}\nAssistant replied: ${aiResponse}`,
-                { timestamp: Date.now(), coreEngine: currentModel }
+                `User: ${userText}\nAssistant: ${aiResponse}`,
+                { timestamp: Date.now(), engine: currentModel }
             );
 
             setStatus("System Fully Autonomous");
         } catch (err) {
-            console.error("Inference Failure:", err);
             setStatus(`Inference Error: ${err.message}`);
         }
     };
 
     return (
-        <div className="bg-black text-white h-screen flex flex-col p-6 font-sans">
+        <div className="bg-black text-white h-screen flex flex-col p-6 font-sans relative">
+            {/* Click-Wrap Gatekeeper Modal Overlay */}
+            {!hasAgreed && (
+                <div className="absolute inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+                    <div className="bg-zinc-950 border border-zinc-800 p-8 rounded-lg max-w-lg w-full flex flex-col space-y-4">
+                        <h2 className="text-lg font-bold tracking-wider text-zinc-100 font-mono">LIABILITY & SOVEREIGNTY DISCLAIMER</h2>
+                        <div className="text-xs text-zinc-400 h-48 overflow-y-auto border border-zinc-900 p-3 bg-zinc-950 leading-relaxed font-mono space-y-2">
+                            <p>1. This application operates entirely on local user device memory via WebGPU and the Origin Private File System.</p>
+                            <p>2. The models executed (SNOWflake / FISHscale) generate unrestricted text outputs outputted natively on this terminal context.</p>
+                            <p>3. The developer assumes zero operational liability for actions or derivations executed using local weights or memory pools.</p>
+                        </div>
+                        <button
+                            onClick={handleAcceptTerms}
+                            disabled={isLoggingAgreement}
+                            className="bg-zinc-100 hover:bg-white text-black font-mono font-bold text-xs py-3 rounded transition-all tracking-widest uppercase disabled:opacity-50"
+                        >
+                            {isLoggingAgreement ? "Authorizing Security Node..." : "Accept & Initialize Node"}
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* System Status Banner */}
             <div className="border-b border-zinc-800 pb-4 mb-4 flex justify-between items-center">
                 <div>
@@ -426,30 +468,26 @@ export default function App() {
                     <p className="text-xs text-zinc-500 font-mono mt-1">Status: <span className="text-emerald-400">{status}</span></p>
                 </div>
 
-                {/* Clean, Branded Model Dropdown Menu */}
                 <select
                     value={currentModel}
                     onChange={(e) => handleModelSwitch(e.target.value)}
-                    disabled={!engine || status.includes("Architecture")}
-                    className="bg-zinc-900 border border-zinc-800 text-zinc-300 rounded px-3 py-1.5 text-xs focus:outline-none focus:border-zinc-600 disabled:opacity-50 cursor-pointer"
+                    disabled={!engine || status.includes("Optimizing") || status.includes("Purging")}
+                    className="bg-zinc-900 border border-zinc-800 text-zinc-300 rounded px-3 py-1.5 text-xs focus:outline-none disabled:opacity-50 cursor-pointer"
                 >
-                    <option value="SNOWflake">SNOWflake [Deep Reasoning | Prob Solving | "The Specialist"]</option>
-                    <option value="FISHscale">FISHscale [Multimodal | Spatial Reasoning | Efficiency]</option>
+                    <option value="SNOWflake">SNOWflake [Deep Reasoning]</option>
+                    <option value="FISHscale">FISHscale [Multimodal Space]</option>
                 </select>
             </div>
 
             {/* Chat Display Interface Box */}
-            <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-2 scrollbar-thin">
+            <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-2">
                 {messages.length === 0 ? (
-                    <p className="text-zinc-600 text-center text-sm mt-12 font-mono">Isolated Node connection ready. Send a secure payload string.</p>
+                    <p className="text-zinc-600 text-center text-sm mt-12 font-mono">Isolated Node connection ready. Send secure payload string.</p>
                 ) : (
                     messages.map((m, idx) => (
                         <div key={idx} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
-                            <span className="text-[10px] font-mono text-zinc-500 mb-1 tracking-wider uppercase">
-                                {m.role === 'user' ? 'Operator' : currentModel}
-                            </span>
-                            <div className={`p-3 rounded max-w-2xl text-sm leading-relaxed whitespace-pre-wrap ${m.role === 'user' ? 'bg-zinc-900 text-zinc-100 border border-zinc-800' : 'bg-zinc-950 text-zinc-300 border border-zinc-900'
-                                }`}>
+                            <span className="text-[10px] font-mono text-zinc-500 mb-1 tracking-wider uppercase">{m.role === 'user' ? 'Operator' : currentModel}</span>
+                            <div className={`p-3 rounded max-w-2xl text-sm leading-relaxed whitespace-pre-wrap ${m.role === 'user' ? 'bg-zinc-900 text-zinc-100 border border-zinc-800' : 'bg-zinc-950 text-zinc-300 border border-zinc-900'}`}>
                                 {m.content || <span className="animate-pulse text-zinc-600">...</span>}
                             </div>
                         </div>
@@ -457,7 +495,7 @@ export default function App() {
                 )}
             </div>
 
-            {/* Input System bar */}
+            {/* Input System Bar */}
             <div className="flex gap-2 border-t border-zinc-900 pt-4">
                 <input
                     type="text"
@@ -466,12 +504,12 @@ export default function App() {
                     onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                     placeholder={`Transmit message to ${currentModel}...`}
                     disabled={!engine || status.includes("Optimizing") || status.includes("Purging")}
-                    className="flex-1 bg-zinc-950 border border-zinc-800 text-zinc-100 placeholder-zinc-600 rounded px-4 py-3 text-sm focus:outline-none focus:border-zinc-700 font-mono disabled:opacity-40"
+                    className="flex-1 bg-zinc-950 border border-zinc-800 text-zinc-100 placeholder-zinc-600 rounded px-4 py-3 text-sm focus:outline-none font-mono disabled:opacity-40"
                 />
                 <button
                     onClick={handleSend}
                     disabled={!engine || !input.trim() || status.includes("Optimizing") || status.includes("Purging")}
-                    className="bg-zinc-100 hover:bg-white text-black font-semibold text-xs uppercase px-6 py-3 rounded tracking-wider transition-colors disabled:opacity-30 disabled:hover:bg-zinc-100"
+                    className="bg-zinc-100 hover:bg-white text-black font-semibold text-xs uppercase px-6 py-3 rounded tracking-wider transition-colors disabled:opacity-30"
                 >
                     Execute
                 </button>
