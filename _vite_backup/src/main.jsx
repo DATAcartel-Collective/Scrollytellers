@@ -1,7 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import ReactDOM from "react-dom/client";
-import { CreateWebWorkerMLCEngine } from "@mlc-ai/web-llm";
-import { ragManager } from "./LocalRAGManager";
 import "./styles.css";
 
 const customAppConfig = {
@@ -312,6 +310,7 @@ export default function App() {
     const [status, setStatus] = useState("Awaiting Sovereignty Agreement...");
     const [input, setInput] = useState("");
     const [messages, setMessages] = useState([]);
+    const ragManagerRef = useRef(null);
     
     // Legal & Security States
     const [hasAgreed, setHasAgreed] = useState(false);
@@ -350,10 +349,14 @@ export default function App() {
     async function bootBackgroundEngine() {
         try {
             setStatus("Initializing Local Vector DB (OPFS)...");
+            const { ragManager } = await import("./LocalRAGManager");
+            ragManagerRef.current = ragManager;
             await ragManager.init();
 
             setStatus("Waking Core Worker Architecture...");
             
+            const { CreateWebWorkerMLCEngine } = await import("@mlc-ai/web-llm");
+
             // Instantiates the separate non-blocking engine thread
             const webWorker = new Worker(new URL("./engine.worker.js", import.meta.url), { type: "module" });
             
@@ -410,7 +413,7 @@ export default function App() {
 
         try {
             setStatus("Searching local vector space...");
-            const retrievedContext = await ragManager.searchContext(userText, 3);
+            const retrievedContext = ragManagerRef.current ? await ragManagerRef.current.searchContext(userText, 3) : "";
             const systemPrompt = `${MODEL_INSTRUCTIONS[currentModel]}\n\n## Retrieved Context:\n${retrievedContext}`;
 
             setStatus("Thinking...");
@@ -437,10 +440,12 @@ export default function App() {
                 });
             }
 
-            await ragManager.ingestDocument(
-                `User: ${userText}\nAssistant: ${aiResponse}`,
-                { timestamp: Date.now(), engine: currentModel }
-            );
+            if (ragManagerRef.current) {
+                await ragManagerRef.current.ingestDocument(
+                    `User: ${userText}\nAssistant: ${aiResponse}`,
+                    { timestamp: Date.now(), engine: currentModel }
+                );
+            }
 
             setStatus("System Fully Autonomous");
         } catch (err) {
