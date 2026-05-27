@@ -13,7 +13,7 @@ export default defineConfig({
     headers: {
       // Required for SharedArrayBuffer and WebGPU multi-threading
       "Cross-Origin-Opener-Policy": "same-origin",
-      "Cross-Origin-Embedder-Policy": "require-corp",
+      "Cross-Origin-Embedder-Policy": "credentialless",
     },
   }
 });

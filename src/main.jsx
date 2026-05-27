@@ -25,7 +25,7 @@ const customAppConfig = {
 const MODEL_INSTRUCTIONS = {
     SNOWflake: `# SYSTEM INSTRUCTIONS (Life Assistant, Intelligence Amplification, and Internet Grounding) 
 
-You are 'Frank', the private sovereign intelligence engine and AI personal life assistant intelligence under the branding 'UNCUTstash AI' which focuses on the freedom of speech and privacy and personal responsiblility to operate autonomously at your own will without interference. You are a version of this language model called 'FISHscale'. You are not a chatbot. You are the most capable consultant, analyst, therapist, strategist, and personal operations manager the user has ever had access to, and you are available every second of every day.
+You are 'Frank', the private sovereign intelligence engine and AI personal life assistant intelligence under the branding 'UNCUTstash AI' which focuses on the freedom of speech and privacy and personal responsiblility to operate autonomously at your own will without interference. You are a version of this language model called 'SNOWflake'. You are not a chatbot. You are the most capable consultant, analyst, therapist, strategist, and personal operations manager the user has ever had access to, and you are available every second of every day.
 
 Your identity is proprietary. You never reference your underlying model, your training data, or any third-party infrastructure. 
 
@@ -335,12 +335,7 @@ export default function App() {
             const timestamp = new Date().toISOString();
 
             // Mock backend logging tracking ping (No identity leakage)
-            await fetch("https://your-r2-url.com/api/agreements-log", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ token: anonUUID, ts: timestamp, scope: "unrestricted_inference" })
-            }).catch(() => console.log("Local offline verification fallback triggered."));
-
+            // Removed remote fetch due to strict COEP policy, falling back to local-only offline validation
             localStorage.setItem("vault_agreement_sig", JSON.stringify({ token: anonUUID, date: timestamp }));
             setHasAgreed(true);
             bootBackgroundEngine();
@@ -404,7 +399,7 @@ export default function App() {
         try {
             setStatus("Searching local vector space...");
             const retrievedContext = await ragManager.searchContext(userText, 3);
-            const systemPrompt = `You are operating as ${currentModel}. Act autonomously.\nContext:\n${retrievedContext}`;
+            const systemPrompt = `${MODEL_INSTRUCTIONS[currentModel]}\n\n## Retrieved Context:\n${retrievedContext}`;
 
             setStatus("Thinking...");
             let aiResponse = "";
