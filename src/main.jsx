@@ -7,13 +7,13 @@ import "./styles.css";
 const customAppConfig = {
     model_list: [
         {
-            model_url: "https://pub-f9f773c792994f58bd674d3f8cb17d9d.r2.dev/SNOWflake_v1.0/",
-            local_id: "SNOWflake", 
-            model_lib: "https://pub-f9f773c792994f58bd674d3f8cb17d9d.r2.dev/core/SNOWflake_v1.0.wasm/"
+            model: "https://pub-f9f773c792994f58bd674d3f8cb17d9d.r2.dev/SNOWflake_v1.0/",
+            model_id: "SNOWflake", 
+            model_lib: "https://pub-f9f773c792994f58bd674d3f8cb17d9d.r2.dev/core/SNOWflake_v1.0.wasm"
         },
         {
-            model_url: "https://pub-f9f773c792994f58bd674d3f8cb17d9d.r2.dev/FISHscale_v1.0/",
-            local_id: "FISHscale",
+            model: "https://pub-f9f773c792994f58bd674d3f8cb17d9d.r2.dev/FISHscale_v1.0/",
+            model_id: "FISHscale",
             model_lib: "https://pub-f9f773c792994f58bd674d3f8cb17d9d.r2.dev/core/FISHscale_v1.0.wasm"
         }
     ],
