@@ -10,6 +10,16 @@ class LocalRAGManager {
 
   // Initialize browser WebAssembly database
   async init() {
+    // Request persistent storage to prevent browser from clearing IndexedDB under quota pressure
+    if (typeof navigator !== "undefined" && navigator.storage && navigator.storage.persist) {
+      try {
+        const isPersisted = await navigator.storage.persist();
+        console.log(`Persistent storage granted: ${isPersisted}`);
+      } catch (e) {
+        console.warn("Could not request persistent storage:", e);
+      }
+    }
+
     // 1. Fire up the local WebGPU/Wasm embedding pipeline
     this.embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
       progress_callback: (info) => console.log(`Loading Embedder: ${info.status}`),
@@ -29,9 +39,18 @@ class LocalRAGManager {
         id UUID PRIMARY KEY,
         text TEXT,
         embedding vector(384),
-        metadata TEXT
+        metadata JSONB
       );
     `);
+
+    // Ensure metadata column is JSONB if it was created as TEXT in older versions
+    try {
+      await this.pg.exec(`
+        ALTER TABLE knowledge_stash ALTER COLUMN metadata TYPE JSONB USING metadata::jsonb;
+      `);
+    } catch (err) {
+      console.log("Metadata column already JSONB or table alteration not needed:", err);
+    }
     console.log("Sovereign PGlite Vector Engine Fully Armed Client-Side.");
   }
 

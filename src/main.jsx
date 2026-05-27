@@ -357,6 +357,18 @@ export default function App() {
             // Instantiates the separate non-blocking engine thread
             const webWorker = new Worker(new URL("./engine.worker.js", import.meta.url), { type: "module" });
             
+            webWorker.onerror = (err) => {
+                console.error("WebWorker Error Event:", err);
+                setStatus(`Worker Error: ${err.message || "Failed to load/run background thread. Web GPU / WASM compatibility issue."}`);
+            };
+
+            webWorker.addEventListener("message", (e) => {
+                if (e.data && e.data.type === "error") {
+                    console.error("Error from WebWorker thread:", e.data.message);
+                    setStatus(`Worker Core Error: ${e.data.message}`);
+                }
+            });
+            
             const workerEngine = await CreateWebWorkerMLCEngine(webWorker, "SNOWflake", {
                 initProgressCallback: (info) => {
                     setStatus(sanitizeLoadingProgress(info.text, "SNOWflake"));

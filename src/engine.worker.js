@@ -1,9 +1,18 @@
 import { WebWorkerMLCEngineHandler } from "@mlc-ai/web-llm";
 
-// Instantiate the background listener handler
-const handler = new WebWorkerMLCEngineHandler();
+console.log("engine.worker.js: Script loaded, initializing WebWorkerMLCEngineHandler...");
 
-// Connect the worker's internal messaging to WebLLM
-self.onmessage = (msg) => {
-  handler.onmessage(msg);
-};
+try {
+  const handler = new WebWorkerMLCEngineHandler();
+
+  self.onmessage = (msg) => {
+    handler.onmessage(msg);
+  };
+  console.log("engine.worker.js: WebWorkerMLCEngineHandler initialized successfully.");
+} catch (err) {
+  console.error("engine.worker.js: WebWorkerMLCEngineHandler failed to initialize:", err);
+  self.postMessage({
+    type: "error",
+    message: err.message || "Failed to initialize WebWorkerMLCEngineHandler"
+  });
+}
