@@ -1,2 +1,5 @@
 .vercel
 node_modules/
+.env*.local
+SNOWflake_v1.0/
+FISHscale_v1.0/
