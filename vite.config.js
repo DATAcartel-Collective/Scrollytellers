@@ -12,7 +12,7 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
-    exclude: ["@lancedb/lancedb"], // Required for WASM stability
+    exclude: ["@lancedb/lancedb", "@electric-sql/pglite"], // Required for WASM stability
   },
   worker: {
     format: "es",
