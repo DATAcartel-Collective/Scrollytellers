@@ -1,38 +1,47 @@
 /**
  * UNCUTstash AI | Unrestricted AI 
  * It's time to take back control of your personal data, once and for all.
+ * 
+ * OPFS-based model stash controller for persistent, on-device model caching.
  */
 
-const customAppConfig = {
-    model_list: [
-        {
-            model: "https://pub-f9f773c792994f58bd674d3f8cb17d9d.r2.dev/SNOWflake_v1.0/",
-            model_id: "SNOWflake",
-            model_lib: "https://pub-f9f773c792994f58bd674d3f8cb17d9d.r2.dev/core/SNOWflake_v1.0.wasm/"
-        },
-        {
-            model: "https://pub-f9f773c792994f58bd674d3f8cb17d9d.r2.dev/FISHscale_v1.0/",
-            model_id: "FISHscale",
-            model_lib: "https://pub-f9f773c792994f58bd674d3f8cb17d9d.r2.dev/core/FISHscale_v1.0.wasm"
-        }
-    ],
+const MODEL_REGISTRY = [
+    {
+        id: "SNOWflake",
+        url: "https://pub-f9f773c792994f58bd674d3f8cb17d9d.r2.dev/SNOWflake_v1.0/",
+        lib: "https://pub-f9f773c792994f58bd674d3f8cb17d9d.r2.dev/core/SNOWflake_v1.0.wasm"
+    },
+    {
+        id: "FISHscale",
+        url: "https://pub-f9f773c792994f58bd674d3f8cb17d9d.r2.dev/FISHscale_v1.0/",
+        lib: "https://pub-f9f773c792994f58bd674d3f8cb17d9d.r2.dev/core/FISHscale_v1.0.wasm"
+    }
+];
+
+class ModelStashController {
+    constructor() {
+        this.models = MODEL_REGISTRY;
+        this.directory = null;
+    }
 
     async initializeStash() {
         if (!navigator.storage || !navigator.storage.getDirectory) {
             throw new Error("STASH ERROR: Device does not support OPFS persistence.");
         }
-        // Access the root of the sandbox storage [Source 2]
+        // Access the root of the sandbox storage
         this.directory = await navigator.storage.getDirectory();
         return this.getDownloadedStatus();
     }
 
     async downloadToStash(modelId, onProgress) {
         const model = this.models.find(m => m.id === modelId);
+        if (!model) throw new Error(`Model "${modelId}" not found in registry.`);
+
         const response = await fetch(model.url);
         const reader = response.body.getReader();
         const contentLength = +response.headers.get('Content-Length');
 
-        // Create file handle in OPFS [Source 1335]
+        // Create file handle in OPFS
         const fileHandle = await this.directory.getFileHandle(`${modelId}.bin`, { create: true });
         const writable = await fileHandle.createWritable();
 
@@ -41,7 +50,7 @@ const customAppConfig = {
             const { done, value } = await reader.read();
             if (done) break;
 
-            // Write chunk directly to disk to protect iPhone RAM [Source 1]
+            // Write chunk directly to disk to protect device RAM
             await writable.write(value);
             receivedLength += value.length;
             if (onProgress) onProgress(Math.round((receivedLength / contentLength) * 100));

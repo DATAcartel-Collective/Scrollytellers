@@ -57,23 +57,16 @@ export class SecureStorageEngine {
 
     async initialize(mode) {
         this.mode = mode;
-        const lancedb = await import('@lancedb/lancedb');
-
-        if (this.mode === 'OPFS') {
-            // Standard 2026 Protocol [Source 2]
-            this.db = await lancedb.connect("opfs://datacartel_vault_v1");
-        } else {
-            // Legacy/Fallback Protocol [Source 175]
-            // LanceDB WASM primarily targets OPFS, but we wrap the connection 
-            // string for indexedDB compatibility in restricted runtimes.
-            this.db = await lancedb.connect("indexeddb://datacartel_fallback_v1");
-        }
-        console.log(`UNCUTstash AI | Storage anchored via ${this.mode}.`);
+        // Storage is now powered by PGLite via LocalRAGManager (pgvector in-browser)
+        // No external native dependencies required
+        const { ragManager } = await import('./LocalRAGManager.js');
+        this.db = ragManager;
+        console.log(`UNCUTstash AI | Storage anchored via ${this.mode} (PGLite).`);
     }
 
-    async vectorSearch(tableName, queryVector, limit = 60) {
-        const table = await this.db.openTable(tableName);
-        return await table.vectorSearch(queryVector).limit(limit).toArray();
+    async vectorSearch(queryText, limit = 5) {
+        if (!this.db) throw new Error("Storage engine not initialized.");
+        return await this.db.searchContext(queryText, limit);
     }
 }
 
