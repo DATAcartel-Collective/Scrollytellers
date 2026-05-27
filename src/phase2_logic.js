@@ -1,6 +1,6 @@
 /**
- * DATAcartel Collective | Core Logic & Resiliency Engine (May 2026)
- * Standards: WebGPU/CPU Fallback, OPFS/IndexedDB Fallback, RRF k=60
+ * UNCUTstash AI | Core Logic & Contingency Engine
+ * _WebGPU/CPU & OPFS/IndexedDB Fallback, RRF k=60_
  */
 
 export class ResiliencyController {
@@ -13,13 +13,13 @@ export class ResiliencyController {
         // Detect WebGPU Availability
         if (!navigator.gpu) {
             this.computeMode = 'CPU Mode';
-            console.warn("DATAcartel | WebGPU not detected. Falling back to CPU (WASM).");
+            console.warn("UNCUTstash AI| WebGPU not detected. Falling back to CPU (WASM).");
         }
 
         // Detect OPFS Availability
         if (!navigator.storage || !navigator.storage.getDirectory) {
             this.storageMode = 'IndexedDB';
-            console.warn("DATAcartel | OPFS unavailable. Falling back to IndexedDB.");
+            console.warn("UNCUTstash AI | OPFS unavailable. Falling back to IndexedDB.");
         }
 
         return { compute: this.computeMode, storage: this.storageMode };
@@ -68,7 +68,7 @@ export class SecureStorageEngine {
             // string for indexedDB compatibility in restricted runtimes.
             this.db = await lancedb.connect("indexeddb://datacartel_fallback_v1");
         }
-        console.log(`DATAcartel | Storage anchored via ${this.mode}.`);
+        console.log(`UNCUTstash AI | Storage anchored via ${this.mode}.`);
     }
 
     async vectorSearch(tableName, queryVector, limit = 60) {
@@ -88,7 +88,7 @@ export class WebGPUComputeNode {
             this.deviceType = 'wasm';
             this.precision = 'fp32'; // CPU stability requirement
         }
-        console.log(`DATAcartel | Compute Node active in ${mode}.`);
+        console.log(`UNCUTstash AI | Compute Node active in ${mode}.`);
     }
 
     async generateEmbeddings(textInput) {
@@ -142,7 +142,7 @@ export class ApplicationController {
             this.compute.initialize(caps.compute)
         ]);
 
-        console.log("DATAcartel Collective | Sovereign Resiliency Synchronized.");
+        console.log("UNCUTstash AI by DATAcartel Collective");
         return caps;
     }
 }

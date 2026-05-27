@@ -363,10 +363,11 @@ export default function App() {
             const webWorker = new Worker(new URL("./engine.worker.js", import.meta.url), { type: "module" });
             
             const workerEngine = await CreateWebWorkerMLCEngine(webWorker, "SNOWflake", {
-                onUpdate: (info) => {
+                initProgressCallback: (info) => {
                     setStatus(sanitizeLoadingProgress(info.text, "SNOWflake"));
-                }
-            }, customAppConfig);
+                },
+                appConfig: customAppConfig
+            });
 
             setEngine(workerEngine);
             setStatus("System Fully Autonomous");

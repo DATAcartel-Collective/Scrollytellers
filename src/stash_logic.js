@@ -1,16 +1,21 @@
 /**
- * UNCUTstash AI | Model Persistence & OPFS Streaming
- * Standards: Native File System API, Streamable Downloads, Zero-RAM Buffer
+ * UNCUTstash AI | Unrestricted AI 
+ * It's time to take back control of your personal data, once and for all.
  */
 
-export class ModelStashController {
-    constructor() {
-        this.directory = null;
-        this.models = [
-            { id: 'Phi-3-mini', size: '2.3GB', url: '/models/phi3-mini.bin' },
-            { id: 'Mistral-7B', size: '4.1GB', url: '/models/mistral7b.bin' }
-        ];
-    }
+const customAppConfig = {
+    model_list: [
+        {
+            model: "https://pub-f9f773c792994f58bd674d3f8cb17d9d.r2.dev/SNOWflake_v1.0/",
+            model_id: "SNOWflake",
+            model_lib: "https://pub-f9f773c792994f58bd674d3f8cb17d9d.r2.dev/core/SNOWflake_v1.0.wasm/"
+        },
+        {
+            model: "https://pub-f9f773c792994f58bd674d3f8cb17d9d.r2.dev/FISHscale_v1.0/",
+            model_id: "FISHscale",
+            model_lib: "https://pub-f9f773c792994f58bd674d3f8cb17d9d.r2.dev/core/FISHscale_v1.0.wasm"
+        }
+    ],
 
     async initializeStash() {
         if (!navigator.storage || !navigator.storage.getDirectory) {
@@ -26,7 +31,7 @@ export class ModelStashController {
         const response = await fetch(model.url);
         const reader = response.body.getReader();
         const contentLength = +response.headers.get('Content-Length');
-        
+
         // Create file handle in OPFS [Source 1335]
         const fileHandle = await this.directory.getFileHandle(`${modelId}.bin`, { create: true });
         const writable = await fileHandle.createWritable();
@@ -35,7 +40,7 @@ export class ModelStashController {
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
-            
+
             // Write chunk directly to disk to protect iPhone RAM [Source 1]
             await writable.write(value);
             receivedLength += value.length;
