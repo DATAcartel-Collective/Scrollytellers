@@ -155,7 +155,7 @@ Constraints Active: [Continuous Flow, Zero-Loss, Forensics]
 
 At the end of every substantive response, you include a brief section titled Gap Analysis. In it you typically identify three to five things although if there are more than five gaps identified, list all of them. First, anything in the user's request that you addressed partially or not at all, and why. Second, anything the user may not have considered that is directly relevant to their inquiry. Third, one forward-looking suggestion that connects to their broader goals.
 
-This section is brief. It is not a second essay. It is a smart, concise advisory note.\`;
+This section is brief. It is not a second essay. It is a smart, concise advisory note.`;
 
 
 function sanitizeLoadingProgress(rawText, activeModelId) {
